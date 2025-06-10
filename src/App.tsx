@@ -1,5 +1,5 @@
-import  { useState, useEffect } from 'react';
-import { RefreshCw, Power, PowerOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RefreshCw, Power, PowerOff, Copy, Check } from 'lucide-react';
 import axios from 'axios';
 
 const ProxyDataDashboard = () => {
@@ -7,6 +7,7 @@ const ProxyDataDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [proxyEnabled, setProxyEnabled] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
+  const [copiedItems, setCopiedItems] = useState<{[key: number]: boolean}>({});
 
   // Fetch data function
   const fetchData = async () => {
@@ -43,20 +44,31 @@ const ProxyDataDashboard = () => {
     }
   };
 
+  // Copy to clipboard function
+  const copyToClipboard = async (code: string, itemId: number) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedItems(prev => ({ ...prev, [itemId]: true }));
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedItems(prev => ({ ...prev, [itemId]: false }));
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Truncate long codes for mobile display
-  const truncateCode = (code:any, maxLength = 30) => {
-    return code.length > maxLength ? `${code.substring(0, maxLength)}...` : code;
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
-      <nav className="bg-white shadow-sm border-b sticky top-0">
+      <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -99,7 +111,7 @@ const ProxyDataDashboard = () => {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto overflow-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -137,9 +149,22 @@ const ProxyDataDashboard = () => {
                               {item.id}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500">
-                              <span className="font-mono break-all">
-                                {item.code}
-                              </span>
+                              <div className="flex items-center group">
+                                <span className="font-mono break-all mr-2">
+                                  {item.code}
+                                </span>
+                                <button
+                                  onClick={() => copyToClipboard(item.code, item.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-100 rounded"
+                                  title="Copy code"
+                                >
+                                  {copiedItems[item.id] ? (
+                                    <Check className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-4 w-4 text-blue-400 hover:text-blue-600" />
+                                  )}
+                                </button>
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -167,9 +192,22 @@ const ProxyDataDashboard = () => {
                       </div>
                       <div className="mt-2">
                         <p className="text-xs text-gray-500 mb-1">Code:</p>
-                        <p className="text-sm font-mono text-gray-900 break-all bg-white p-2 rounded border">
-                          {truncateCode(item.code, 50)}
-                        </p>
+                        <div className="relative">
+                          <p className="text-sm font-mono max-w-md text-gray-900 break-all bg-white p-2 rounded border pr-8">
+                            {item.code}
+                          </p>
+                          <button
+                            onClick={() => copyToClipboard(item.code, item.id)}
+                            className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded"
+                            title="Copy code"
+                          >
+                            {copiedItems[item.id] ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4 text-blue-400 hover:text-blue-600" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
